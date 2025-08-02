@@ -1,0 +1,561 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Ruta Romántica para Sona</title>
+  <style>
+    /* Основные стили */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: calc(var(--vh, 1vh) * 100);
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #ffe4ec, #fff0f5);
+      overflow: hidden;
+      position: relative;
+      animation: bgPulse 12s ease-in-out infinite alternate;
+      user-select: none;
+    }
+    @keyframes bgPulse {
+      0% { background: linear-gradient(to bottom, #ffe4ec, #fff0f5); }
+      50% { background: linear-gradient(to bottom, #ffd1e3, #ffc0d1); }
+      100% { background: linear-gradient(to bottom, #ffe4ec, #fff0f5); }
+    }
+    #map {
+      width: 100vw;
+      height: calc(var(--vh, 1vh) * 100);
+      opacity: 0;
+      transition: opacity 2s ease;
+      z-index: 0;
+      user-select: none;
+    }
+    /* Фоновые падающие сердечки */
+    #heart-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: calc(var(--vh, 1vh) * 100);
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+      filter: drop-shadow(0 0 2px #ff69b4);
+    }
+    .heart-bg-item {
+      position: absolute;
+      font-size: 18px;
+      animation: heartFall linear infinite;
+      pointer-events: none;
+      filter: drop-shadow(0 0 3px #ff1493);
+      opacity: 0.8;
+      transform-origin: center;
+      will-change: transform, opacity;
+    }
+    @keyframes heartFall {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(50vh) rotate(180deg); opacity: 0.7; }
+      100% { opacity: 0; transform: translateY(110vh) rotate(360deg); }
+    }
+    /* Интро */
+    #intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: calc(var(--vh, 1vh) * 100);
+      background: radial-gradient(circle at center, #ffcee6 0%, #ffb0ca 40%, #ff87b6 70%, #ff69b4 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #880e4f;
+      font-size: 1.8em;
+      padding: 30px 40px;
+      z-index: 10;
+      overflow: hidden;
+      animation: introGlowPulse 4s ease-in-out infinite;
+      user-select: none;
+    }
+    @keyframes introGlowPulse {
+      0%, 100% { filter: drop-shadow(0 0 20px #ff69b4); }
+      50% { filter: drop-shadow(0 0 40px #ff1493); }
+    }
+    .glow-text {
+      color: #fff;
+      font-weight: bold;
+      font-size: 2.8em;
+      text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff1493, 0 0 30px #ff69b4, 0 0 40px #ff1493, 0 0 50px #ff69b4;
+      margin-bottom: 1em;
+      animation: sway 5s ease-in-out infinite;
+      user-select: none;
+    }
+    @keyframes sway {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(2deg); }
+    }
+    .glow-subtext {
+      font-size: 1.4em;
+      line-height: 1.3;
+      color: #fff0f5;
+      text-shadow: 0 0 8px #ff69b4;
+      margin-bottom: 2.5em;
+      min-height: 4.5em;
+      white-space: pre-wrap;
+      letter-spacing: 0.04em;
+      user-select: none;
+    }
+    .glow-line {
+      opacity: 0;
+      transform: translateX(-100px);
+      animation: slideIn 1s forwards;
+      user-select: none;
+    }
+    .glow-line:nth-child(1) { animation-delay: 0.5s; }
+    .glow-line:nth-child(2) { animation-delay: 1.2s; }
+    .glow-line:nth-child(3) { animation-delay: 2s; }
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+    /* Кнопка старт */
+    #intro button {
+      padding: 16px 40px;
+      font-size: 1.6em;
+      background: #ff1493;
+      color: white;
+      border: none;
+      border-radius: 35px;
+      box-shadow: 0 0 10px #ff69b4, 0 0 20px #ff1493, 0 0 30px #ff69b4;
+      cursor: pointer;
+      opacity: 0;
+      animation: btnFadeIn 1.5s ease forwards, pulse 2.5s ease-in-out 1.5s infinite;
+      transform-origin: center;
+      user-select: none;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #intro button:hover {
+      background: #ff85c1;
+      box-shadow: 0 0 15px #ffb0d7, 0 0 25px #ff1493, 0 0 40px #ff85c1;
+    }
+    @keyframes btnFadeIn {
+      to { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    /* Сердечки при клике */
+    .heart {
+      position: fixed;
+      width: 25px;
+      height: 22px;
+      background: #ff1493;
+      pointer-events: none;
+      animation: heartPulse 1s ease forwards;
+      z-index: 50;
+      filter: drop-shadow(0 0 6px #ff69b4);
+      border-radius: 12px 12px 0 0;
+      transform: rotate(-45deg);
+      will-change: transform, opacity;
+    }
+    .heart::before,
+    .heart::after {
+      content: "";
+      position: absolute;
+      width: 25px;
+      height: 25px;
+      background: #ff1493;
+      border-radius: 50%;
+      top: 0;
+      left: 0;
+      will-change: transform, opacity;
+    }
+    .heart::before {
+      top: -12.5px;
+      left: 0;
+    }
+    .heart::after {
+      top: 0;
+      left: 12.5px;
+    }
+    @keyframes heartPulse {
+      0% { opacity: 1; transform: translateY(0) scale(1) rotate(-45deg); }
+      50% { transform: translateY(-20px) scale(1.4) rotate(-45deg); opacity: 0.8; }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.8) rotate(-45deg); }
+    }
+    /* Всплывающее окно подарка */
+    #giftPopup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 20px;
+      padding: 30px 50px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      z-index: 20;
+      text-align: center;
+      user-select: none;
+      animation: popupIn 1s ease forwards;
+    }
+    #giftPopup p {
+      font-size: 1.5em;
+      color: #e91e63;
+      margin: 10px 0;
+      opacity: 0;
+      animation: giftTextIn 1s ease forwards;
+      text-shadow: 0 0 8px #ff69b4, 0 0 15px #e91e63;
+    }
+    #giftPopup p:nth-child(1) { animation-delay: 0.3s; }
+    #giftPopup p:nth-child(2) { animation-delay: 0.6s; }
+    #giftPopup p:nth-child(3) { animation-delay: 0.9s; }
+    #giftPopup p:nth-child(4) { animation-delay: 1.2s; }
+    @keyframes popupIn {
+      from { transform: translate(-50%, -60%); opacity: 0; }
+      to { transform: translate(-50%, -50%); opacity: 1; }
+    }
+    @keyframes giftTextIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    /* Кнопка подарка */
+    .gift-button {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 1.1em;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      animation: pulse 2.5s infinite;
+      z-index: 5;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+    .gift-button.show {
+      display: block;
+      animation: fadeInBtn 1.5s forwards, pulse 2.5s infinite;
+      opacity: 1;
+    }
+    .gift-button:hover {
+      background: #ff85c1;
+      transform: scale(1.05);
+    }
+    @keyframes fadeInBtn {
+      from { opacity: 0; transform: translateX(-50%) scale(0.8); }
+      to { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+    /* Сообщение на карте */
+    #msgBox {
+      position: fixed;
+      top: 60px;
+      left: 20px;
+      padding: 10px 15px;
+      background: rgba(255, 105, 180, 0.9);
+      color: #fff;
+      border-radius: 12px;
+      font-size: 1.1em;
+      box-shadow: 0 0 15px #ff69b4;
+      z-index: 30;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+      filter: drop-shadow(0 0 6px #ff1493);
+    }
+    #msgBox.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Анимация маркеров */
+    .marker-pulse {
+      animation: markerPulse 2.5s ease-in-out infinite;
+      transform-origin: center bottom;
+      will-change: transform;
+    }
+    @keyframes markerPulse {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.15) rotate(5deg); }
+    }
+    /* Медиа-запросы */
+    @media (max-width: 400px) {
+      #intro { font-size: 1.4em; padding: 20px; }
+      .glow-text { font-size: 2em; }
+      .glow-subtext { font-size: 1.1em; }
+      #intro button { font-size: 1.3em; padding: 14px 30px; }
+      .gift-button { font-size: 1em; padding: 10px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="heart-bg"></div>
+  <div id="intro">
+    <div class="glow-text">¡Hola, mi dulce Soni! ❤️</div>
+    <div class="glow-subtext" id="introText">
+      <div class="glow-line">¡Ganaste!</div>
+      <div class="glow-line">¡Felicidades, mi amor!</div>
+      <div class="glow-line">Si quieres ver el final...</div>
+    </div>
+    <button id="startBtn">Presione el Botón Soni❤️</button>
+  </div>
+  <audio id="music" loop>
+    <source src="perfect.mp3" type="audio/mpeg" />
+  </audio>
+  <div id="map"></div>
+  <button id="giftBtn" class="gift-button">Haz clic aquí y finalmente recibirás el regalo, querida mía 🎁</button>
+  <div id="giftPopup">
+    <p>¡Genial, querida! ❤️</p>
+    <p>Ya puedes abrir el regalo 💓</p>
+    <p>Gracias por tu cariño y atención 💞</p>
+    <p>¡Espero que te encante! 💗</p>
+  </div>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD00oMC8SNkXOCWjl-jIY0ucAkV5GzAtAo"></script>
+  <script>
+    // Динамическая установка высоты viewport
+    function setVh() {
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+    setVh();
+
+    // Музыка с плавным появлением громкости
+    const music = document.getElementById('music');
+    let musicVolume = 0;
+    music.volume = 0;
+    function fadeInMusic() {
+      if (musicVolume < 0.5) {
+        musicVolume += 0.01;
+        music.volume = musicVolume;
+        requestAnimationFrame(fadeInMusic);
+      } else {
+        music.volume = 0.5;
+      }
+    }
+
+    // Элементы
+    const intro = document.getElementById('intro');
+    const startBtn = document.getElementById('startBtn');
+    const mapDiv = document.getElementById('map');
+    const giftBtn = document.getElementById('giftBtn');
+    const giftPopup = document.getElementById('giftPopup');
+
+    // Обработчик кнопки старта
+    startBtn.onclick = () => {
+      intro.style.transition = 'opacity 1s ease';
+      intro.style.opacity = '0';
+      music.play();
+      fadeInMusic();
+      setTimeout(() => {
+        intro.style.display = 'none';
+        mapDiv.style.opacity = '1';
+        initMap();
+        createBackgroundHearts();
+        setTimeout(() => giftBtn.classList.add('show'), 5000);
+      }, 1200);
+    };
+
+    // Создание падающих сердечек
+    function createBackgroundHearts() {
+      const container = document.getElementById('heart-bg');
+      container.innerHTML = '';
+      for (let i = 0; i < 50; i++) {
+        const heart = document.createElement('span');
+        heart.className = 'heart-bg-item';
+        heart.innerText = '❤️';
+        heart.style.left = `${Math.random() * 100}vw`;
+        heart.style.fontSize = `${10 + Math.random() * 26}px`;
+        heart.style.animationDuration = `${6 + Math.random() * 8}s`;
+        heart.style.animationDelay = `${Math.random() * 12}s`;
+        heart.style.opacity = 0.6 + Math.random() * 0.4;
+        container.appendChild(heart);
+      }
+    }
+
+    // Координаты и сообщения
+    const locations = [
+      { lat: 40.195168, lng: 44.515099, msg: "Nuestro lugar favorito que visitamos a menudo...💑" },
+      { lat: 40.191508, lng: 44.505955, msg: "Jardín de los enamorados...💕" },
+      { lat: 40.176017, lng: 44.507433, msg: "Finalmente llegamos aquí y descansamos un poco...😃" },
+      { lat: 40.193313, lng: 44.481324, msg: "Aquí preparan tu café favorito...❤️" }
+    ];
+
+    // Создание кастомного пути с изгибами
+    function getCustomPath(points, segments = 100) {
+      const path = [];
+      for (let t = 0; t <= 1; t += 1 / segments) {
+        const start = points[0], end = points[1];
+        let lat = start.lat + (end.lat - start.lat) * t;
+        let lng = start.lng + (end.lng - start.lng) * t;
+        lat += Math.sin(t * Math.PI) * 0.005;
+        path.push({ lat, lng });
+      }
+      for (let t = 0; t <= 1; t += 1 / segments) {
+        const start = points[1], end = points[2];
+        let lat = start.lat + (end.lat - start.lat) * t;
+        let lng = start.lng + (end.lng - start.lng) * t;
+        path.push({ lat, lng });
+      }
+      for (let t = 0; t <= 1; t += 1 / segments) {
+        const start = points[2], end = points[3];
+        let lat = start.lat + (end.lat - start.lat) * t;
+        let lng = start.lng + (end.lng - start.lng) * t;
+        lat -= Math.sin(t * Math.PI) * 0.01;
+        lng -= Math.sin(t * Math.PI) * 0.005;
+        path.push({ lat, lng });
+      }
+      return path;
+    }
+
+    // Инициализация карты
+    function initMap() {
+      const heartIcon = {
+        path: "M10 30 A20 20 0 0 1 50 30 Q50 60 25 80 Q0 60 0 30 A20 20 0 0 1 10 30 Z",
+        fillColor: "#ff69b4",
+        fillOpacity: 1,
+        strokeWeight: 0,
+        scale: 0.1,
+        anchor: new google.maps.Point(25, 30)
+      };
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 13,
+        center: locations[0],
+        styles: [
+          { elementType: "geometry", stylers: [{ color: "#fce4ec" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#880e4f" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#fce4ec" }] },
+          { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#f8bbd0" }] }
+        ]
+      });
+      locations.forEach(loc => {
+        const marker = new google.maps.Marker({
+          position: loc,
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#ff69b4",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#fff"
+          },
+          animation: google.maps.Animation.DROP
+        });
+        setTimeout(() => {
+          marker.setAnimation(google.maps.Animation.BOUNCE);
+          setTimeout(() => marker.setAnimation(null), 2100);
+          setInterval(() => {
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+            setTimeout(() => marker.setAnimation(null), 2100);
+          }, 4500);
+        }, 1000);
+        marker.addListener("click", () => {
+          let msgBox = document.getElementById("msgBox");
+          if (!msgBox) {
+            msgBox = document.createElement('div');
+            msgBox.id = 'msgBox';
+            document.body.appendChild(msgBox);
+          }
+          msgBox.innerText = loc.msg;
+          msgBox.classList.add('show');
+          setTimeout(() => msgBox.classList.remove('show'), 5000);
+        });
+      });
+      new google.maps.Polyline({
+        path: getCustomPath(locations),
+        geodesic: true,
+        strokeOpacity: 0,
+        icons: [{ icon: heartIcon, offset: '0', repeat: '15px' }],
+        map: map
+      });
+    }
+
+    // Обработчик кнопки подарка
+    giftBtn.onclick = () => {
+      giftPopup.style.display = 'block';
+    };
+
+    // Сердечки при клике
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.gift-button') && e.target !== startBtn) {
+        createClickHeart(e.clientX, e.clientY);
+      }
+    });
+
+    // Создание сердца при клике
+    function createClickHeart(x, y) {
+      const heart = document.createElement('div');
+      heart.className = 'heart';
+      heart.style.left = `${x - 12}px`;
+      heart.style.top = `${y - 12}px`;
+      const colors = ['#ff1493', '#ff69b4', '#ff85c1', '#ff4da6'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      heart.style.background = color;
+      heart.style.filter = `drop-shadow(0 0 6px ${color})`;
+      heart.style.setProperty('--color-before', color);
+      heart.style.setProperty('--color-after', color);
+      document.body.appendChild(heart);
+      const moveX = (Math.random() * 40) - 20;
+      heart.animate([
+        { transform: 'translate(0, 0) scale(1) rotate(-45deg)', opacity: 1 },
+        { transform: `translate(${moveX}px, -40px) scale(1.8) rotate(-45deg)`, opacity: 0 }
+      ], {
+        duration: 1000,
+        easing: 'ease-out'
+      });
+      setTimeout(() => heart.remove(), 1000);
+    }
+  </script>
+</body>
+</html>
